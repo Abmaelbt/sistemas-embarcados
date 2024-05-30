@@ -9,7 +9,7 @@ const db = new sqlite3.Database(':memory:');
 // Inicializar banco de dados
 db.serialize(() => {
     db.run("CREATE TABLE slots (id INTEGER PRIMARY KEY, total INTEGER, available INTEGER)");
-    db.run("INSERT INTO slots (id, total, available) VALUES (1, 100, 100)");  // Exemplo de estacionamento com 100 vagas
+    db.run("INSERT INTO slots (id, total, available) VALUES (1, 100, 0)");  // Exemplo de estacionamento com 100 vagas
 });
 
 // Endpoints de controle de vagas

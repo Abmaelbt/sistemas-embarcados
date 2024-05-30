@@ -14,7 +14,7 @@ db.serialize(() => {
 
 // Endpoints de controle de acesso
 app.post('/access', async (req, res) => {
-    const { cpf, action } = req.body;  // action: 'enter' ou 'exit'
+    const { cpf, action } = req.body;  // action: 'enter' ou 'exit' (entrar ou sair)
     const timestamp = new Date().toISOString();
 
     try {
@@ -37,7 +37,7 @@ app.post('/access', async (req, res) => {
         } else if (action === 'exit') {
             const creditResponse = await axios.get(`http://localhost:3002/credits/${cpf}`);
             const credits = creditResponse.data;
-            if (credits.credits > 0) {
+            if (credits.credits > 1) {
                 await axios.post('http://localhost:3005/gate', { action: 'open' });
                 db.run("INSERT INTO access (cpf, action, timestamp) VALUES (?, ?, ?)", [cpf, action, timestamp], (err) => {
                     if (err) {
