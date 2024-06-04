@@ -4,11 +4,11 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 app.use(express.json());
 
-const db = new sqlite3.Database(':memory:');
+const db = new sqlite3.Database('./dados.db');
 
 // Inicializar banco de dados
 db.serialize(() => {
-    db.run("CREATE TABLE credits (cpf TEXT PRIMARY KEY, credits INTEGER)");
+    db.run("CREATE TABLE IF NOT EXISTS credits (cpf TEXT PRIMARY KEY, credits INTEGER)");
 });
 
 // Endpoints de controle de créditos
@@ -32,6 +32,17 @@ app.get('/credits/:cpf', (req, res) => {
             return res.status(404).send("Credits not found");
         }
         res.send(row);
+    });
+});
+
+app.put('/credits/:cpf', (req, res) => {
+    const cpf = req.params.cpf;
+    console.log(cpf)
+    db.run("UPDATE credits SET credits = credits - 1 WHERE cpf = ?", [cpf], (err, row) => {
+        if (err) {
+            return res.status(500).send("Error retrieving credits");
+        }
+        return res.status(200).send("Credits updated");
     });
 });
 

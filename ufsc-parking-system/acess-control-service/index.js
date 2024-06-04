@@ -5,11 +5,11 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 app.use(express.json());
 
-const db = new sqlite3.Database(':memory:');
+const db = new sqlite3.Database('./dados.db');
 
 // Inicializar banco de dados
 db.serialize(() => {
-    db.run("CREATE TABLE access (id INTEGER PRIMARY KEY, cpf TEXT, action TEXT, timestamp TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS access (id INTEGER PRIMARY KEY, cpf TEXT, action TEXT, timestamp TEXT)");
 });
 
 // Endpoints de controle de acesso
@@ -28,7 +28,10 @@ app.post('/access', async (req, res) => {
                     if (err) {
                         return res.status(500).send("Error recording access");
                     }
-                    db.run("UPDATE slots SET available = available - 1 WHERE id = 1");
+                    axios.put(`http://localhost:3003/slots/`, {teste: 'entrada'}).then((res)=>{
+                        console.log(res.data)
+                });
+                    //db.run("UPDATE slots SET available = available - 1 WHERE id = 1");
                     res.send("Access granted");
                 });
             } else {
@@ -43,8 +46,13 @@ app.post('/access', async (req, res) => {
                     if (err) {
                         return res.status(500).send("Error recording access");
                     }
-                    db.run("UPDATE slots SET available = available + 1 WHERE id = 1");
-                    db.run("UPDATE credits SET credits = credits - 1 WHERE cpf = ?", [cpf]);
+                    ///db.run("UPDATE slots SET available = available + 1 WHERE id = 1");
+                    axios.put(`http://localhost:3003/slots/`, {teste: 'saida'}).then((res)=>{
+                            console.log(res.data)
+                    });
+                    axios.put(`http://localhost:3002/credits/${cpf}`).then((res)=>{
+                            console.log(res.data)
+                    });
                     res.send("Access granted");
                 });
             } else {
@@ -52,6 +60,7 @@ app.post('/access', async (req, res) => {
             }
         }
     } catch (error) {
+        console.log(error)
         res.status(500).send("Error processing access");
     }
 });
