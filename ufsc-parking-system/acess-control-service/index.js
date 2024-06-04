@@ -5,11 +5,11 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 app.use(express.json());
 
-const db = new sqlite3.Database(':memory:');
+const db = new sqlite3.Database('./dados.db');
 
 // Inicializar banco de dados
 db.serialize(() => {
-    db.run("CREATE TABLE access (id INTEGER PRIMARY KEY, cpf TEXT, action TEXT, timestamp TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS access (id INTEGER PRIMARY KEY, cpf TEXT, action TEXT, timestamp TEXT)");
 });
 
 // Endpoints de controle de acesso
@@ -22,13 +22,14 @@ app.post('/access', async (req, res) => {
         if (action === 'enter') {
             const slotResponse = await axios.get('http://localhost:3003/slots');
             const slots = slotResponse.data;
+            console.log(slots)
             if (slots.available > 0) {
                 await axios.post('http://localhost:3005/gate', { action: 'open' });
                 db.run("INSERT INTO access (cpf, action, timestamp) VALUES (?, ?, ?)", [cpf, action, timestamp], (err) => {
                     if (err) {
                         return res.status(500).send("Error recording access");
                     }
-                    db.run("UPDATE slots SET available = available - 1 WHERE id = 1");
+                    db.run("UPDATE slots SET available = available - 1 WHERE id = 2");
                     res.send("Access granted");
                 });
             } else {

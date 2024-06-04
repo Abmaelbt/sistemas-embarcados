@@ -4,11 +4,11 @@ const sqlite3 = require('sqlite3').verbose();
 const app = express();
 app.use(express.json());
 
-const db = new sqlite3.Database(':memory:');
+const db = new sqlite3.Database('./dados.db');
 
 // Inicializar banco de dados
 db.serialize(() => {
-    db.run("CREATE TABLE users (cpf TEXT PRIMARY KEY, name TEXT, category TEXT)");
+    db.run("CREATE TABLE IF NOT EXISTS users (cpf TEXT PRIMARY KEY, name TEXT, category TEXT)");
 });
 
 // Endpoints de cadastro de usuários
