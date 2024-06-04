@@ -1,5 +1,6 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
+const axios = require('axios');
 
 const app = express();
 app.use(express.json());
@@ -12,14 +13,59 @@ db.serialize(() => {
 });
 
 // Endpoints de controle de créditos
-app.post('/credits', (req, res) => {
+app.post('/credits', async (req, res) => {
     const { cpf, credits } = req.body;
-    db.run("INSERT INTO credits (cpf, credits) VALUES (?, ?)", [cpf, credits], (err) => {
-        if (err) {
-            return res.status(500).send("Error inserting credits");
+
+    console.log(`Requisicao pra adicionar creditos: CPF = ${cpf}, Credits = ${credits}`);
+
+    try {
+        // Verificar se o CPF existe no microserviço de usuários
+        const userResponse = await axios.get(`http://localhost:3001/users/${cpf}`);
+        
+        if (userResponse.status === 200) {
+            console.log(`User found: ${JSON.stringify(userResponse.data)}`);
+            
+            // Verificar se o CPF já existe na tabela de créditos
+            db.get("SELECT * FROM credits WHERE cpf = ?", [cpf], (err, row) => {
+                if (err) {
+                    console.error("Error checking existing credits:", err);
+                    return res.status(500).send("Error checking existing credits");
+                }
+                if (row) {
+                    // Atualizar os créditos se o CPF já existir
+                    db.run("UPDATE credits SET credits = credits + ? WHERE cpf = ?", [credits, cpf], (err) => {
+                        if (err) {
+                            console.error("Error updating credits:", err);
+                            return res.status(500).send("Error updating credits");
+                        }
+                        console.log("Credits updated successfully");
+                        res.status(200).send("Credits updated");
+                    });
+                } else {
+                    // Inserir novos créditos se o CPF não existir
+                    db.run("INSERT INTO credits (cpf, credits) VALUES (?, ?)", [cpf, credits], (err) => {
+                        if (err) {
+                            console.error("Error inserting credits:", err);
+                            return res.status(500).send("Error inserting credits");
+                        }
+                        console.log("Credits added successfully");
+                        res.status(201).send("Credits added");
+                    });
+                }
+            });
+        } else {
+            console.log("User not found");
+            res.status(404).send("User not found");
         }
-        res.status(201).send("Credits added");
-    });
+    } catch (error) {
+        if (error.response && error.response.status === 404) {
+            console.log("User not found");
+            res.status(404).send("User not found");
+        } else {
+            console.error("Error verifying user:", error);
+            res.status(500).send("Error verifying user");
+        }
+    }
 });
 
 app.get('/credits/:cpf', (req, res) => {
@@ -29,7 +75,7 @@ app.get('/credits/:cpf', (req, res) => {
             return res.status(500).send("Error retrieving credits");
         }
         if (!row) {
-            return res.status(404).send("Credits not found");
+            return res.status(404).send("Credits not found for user");
         }
         res.send(row);
     });
@@ -49,3 +95,4 @@ app.put('/credits/:cpf', (req, res) => {
 app.listen(3002, () => {
     console.log('Credit service running on port 3002');
 });
+
